@@ -1,18 +1,20 @@
-FROM node:22.16.0-alpine
-
+# ---- deps ----
+FROM node:20-bookworm-slim AS deps
 WORKDIR /app
-
-# Copy package files
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Install dependencies
-RUN npm install
+# ---- runtime ----
+FROM node:20-bookworm-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3001
 
-# Copy source code
+# run as non-root
+RUN useradd -m -u 1001 app
+
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Expose the port
-EXPOSE 3001
-
-# Start the application
-CMD ["npm", "run", "dev"]
+USER app
+CMD ["node", "src/app.js"]

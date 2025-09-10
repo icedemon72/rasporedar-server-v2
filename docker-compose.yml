@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: rasporedar-api:prod
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+    ports:
+      - "${PUBLISH_PORT:-3001}:${PORT:-3001}"
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    # healthcheck:
+    #   test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:${PORT:-3001}/thanks || exit 1"]
+    #   interval: 10s
+    #   timeout: 3s
+    #   retries: 5
+volumes:
+  api_node_modules:
