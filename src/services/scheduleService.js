@@ -5,22 +5,27 @@ import { authSenderInInstitutionObject, senderInInstitutionObject } from '../uti
 import { isProfessorOnSubject } from "./subjectService.js";
 
 export const addSchedule = async (sender, institution, data) => {
-	const scheduleData = data.data;
+  const scheduleData = Array.isArray(data.rows) ? data.rows : [];
+  
+	if (!scheduleData.length) {
+    throw { status: 400, message: 'Nema podataka za raspored!' };
+  }
 
-	const isEveryProfessorOnSubject = scheduleData.every(dataObj => {
-		return dataObj.data.every(day => {
-			return day.every(async (term) => {
-				
-				if(term?.lecturer) {
-					return await isProfessorOnSubject(institution, term.subject, term.lecturer);
-				}
-			
-				return true;
-			});
-		});
-	});
-
-	if(!isEveryProfessorOnSubject) throw { status: 400, message: 'Greška prilikom dodavanja rasporeda, neki profesori nisu na predmetu!' }
+  for (const dataObj of scheduleData) {
+    for (const day of dataObj.data) {
+      for (const term of day) {
+        if (term?.lecturer) {
+          const ok = await isProfessorOnSubject(institution, term.subject, term.lecturer);
+          if (!ok) {
+            throw { 
+              status: 400, 
+              message: 'Greška prilikom dodavanja rasporeda, neki profesori nisu na predmetu!' 
+            };
+          }
+        }
+      }
+    }
+  }
 
 	const body = {
     ...data,
