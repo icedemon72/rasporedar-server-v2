@@ -31,7 +31,7 @@ export const handleDeleteSchedule = async (req, res) => {
   try {
     const done = await deleteSchedule(req.params.institution, req.params.schedule);
     
-    return res.status(204).send(done);
+    return res.status(200).send(done);
   } catch (err) {
     return res.status(err.status || 500).send({ message: err.message });
   }

@@ -17,11 +17,13 @@ const defaultTimesSubSchema = mongoose.Schema(
 const dataSubSchema = mongoose.Schema(
   {
     subject: { 
-      type: ObjectId,
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
       ref: 'Subject'
     },
     lecturer: {
-      type: ObjectId,
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
       ref: 'Professor'
     },
     from: {

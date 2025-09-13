@@ -11,25 +11,42 @@ export const addSchedule = async (sender, institution, data) => {
     throw { status: 400, message: 'Nema podataka za raspored!' };
   }
 
-  for (const dataObj of scheduleData) {
-    for (const day of dataObj.data) {
-      for (const term of day) {
-        if (term?.lecturer) {
-          const ok = await isProfessorOnSubject(institution, term.subject, term.lecturer);
-          if (!ok) {
-            throw { 
-              status: 400, 
-              message: 'Greška prilikom dodavanja rasporeda, neki profesori nisu na predmetu!' 
-            };
-          }
-        }
-      }
-    }
-  }
+  const isEveryProfessorOnSubject = scheduleData.every(dataObj => {
+		return dataObj.data.every(day => {
+			return day.every(async (term) => {
+				
+				if (term?.lecturer) {
+					return await isProfessorOnSubject(institution, term.subject, term.lecturer);
+				}
+			
+				return true;
+			});
+		});
+	});
 
-	const body = {
+  if (!isEveryProfessorOnSubject) throw { status: 400, message: 'Greška prilikom dodavanja rasporeda, neki profesori nisu na predmetu!' }
+
+  const instances = scheduleData.map((row, i) => ({
+    group: data.groups?.[i] ?? `Grupa ${i + 1}`,
+    data: row.data.map(day =>
+      day.map(term => ({
+        subject: term.subject || null,
+        lecturer: term.lecturer || null,
+        from: term.from || null,
+        to: term.to || null,
+        location: term.location || null,
+        index: term.index ?? null
+      }))
+    ),
+    defaultTimes: row.defaultTimes.map(dt => ({
+      from: dt.from || null,
+      to: dt.to || null
+    }))
+  }));
+
+  const body = {
     ...data,
-    instances: data.data,
+    instances,
     institution,
     deleted: false,
     createdBy: sender
@@ -113,7 +130,11 @@ export const getAllSchedulesInInstitution = async (sender, institution, publishe
 export const getSchedule = async (sender, institution, schedule) => {
   const scheduleObj = await Schedule.findOne({ _id: schedule, deleted: false })
     .populate({
-      path: 'instances.data.subject instances.data.lecturer',
+      path: 'instances.data.subject',
+      select: '_id name'
+    })
+    .populate({
+      path: 'instances.data.lecturer',
       select: '_id name'
     });
 
